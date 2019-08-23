@@ -26,12 +26,12 @@ let num = [
 ];
 let view = false;
 let createSelectorQuery = (query) => {
-    let str = queryCodeHTML;
     view = false;
-    str = str.replace("${thisQuery}",  Cookies.get('thisQuery'));
-    str = str.replace("${countQuery}",  survey.test.length);
-    str = str.replace("${titleQuery}",  query.title);
-    str = str.replace("${info}",  query.info);
+    let str = queryCodeHTML.replace("/",  "Вопросов: ")
+        .replace("${countQuery}",  survey.test.length)
+        .replace("${thisQuery}", "")
+        .replace("${titleQuery}",  query.title)
+        .replace("${info}",  query.info);
     let descriptionArr = query.description
         .replace("${count}", `<span class="alert-success">${num[query.count-1]}</span>`)
         .split("\n\n");
@@ -47,8 +47,6 @@ let createSelectorQuery = (query) => {
     str = str.replace("${descriptionQuery}",  description);
 
     let selectionQuery = "";
-
-
     for (let i = 0; i < query.selection.length; i++) {
         let querySelect = querySelectionQueryHTML;
         querySelect = querySelect.replace("${query}", query.selection[i].query);
@@ -67,7 +65,7 @@ let createSelectorQuery = (query) => {
     }
     str = str.replace("${selectionQuery}",  selectionQuery);
     return str.replace("Дальше", "Узнать рузультат");
-}
+};
 let createCodeQuery = (query) => {
     let str = queryCodeHTML;
     str = str.replace("${thisQuery}",  Cookies.get('thisQuery'));
@@ -162,6 +160,7 @@ let checkSelectionProcessing = () => {
     $("input").each((i, el) => {
        if (names.indexOf(el.name) === -1) names.push(el.name);
     });
+    let descriptions = "";
     for (let i = 0; i < names.length; i++){
         let selected = $(`input:checked[name=${names[i]}]`);
         let alertSelector = `#q-d-${names[i].substr(4)}`;
@@ -172,17 +171,25 @@ let checkSelectionProcessing = () => {
             $(alertSelector).removeClass("alert-success");
             $(alertSelector).removeClass("hidden");
         } else {
-            $(alertSelector).html(selected[0].value);
-            $(alertSelector).removeClass("alert-danger");
-            $(alertSelector).addClass("alert-success");
-            $(alertSelector).removeClass("hidden");
+            descriptions += `<p>${selected[0].value}</p>`;
         }
-        console.log(selected.length);
     }
-    if (result) $(document).scrollTop(0);
-    $($("body")[0]).html($("body")[0].html().replace("Узнать результат", "Вернуться на главную"));
+    if (view) {
+        $(document).scrollTop(0);
+        $("#selector").detach();
+        $("btn").detach();
+        $.get("source/perfectCompanionDescription.html")
+            .done(html => {
+                $("body>div:first").html(
+                    html
+                        .replace("${queryDescription}", descriptions)
+                        .replaceAll("${url}", GET("redirect") || location.href)
+                        .replace("${date}", new Date().toJSON().slice(0,10).replace(/-/g,'/'))
+                );
+            })
+            .fail((jqxhr, textStatus, error) => console.log(error))
+    }
     if (!view) swal('Ошибка', `Нужно ответить на все вопросы`, "warning");
-    if (result && view) return  document.location.href = document.location.href.replace(/\?*test=[a-z0-9]*/gi, "");
     return result && view;
 };
 let checkMultiSelector = (query) => {
@@ -367,7 +374,7 @@ function showResult() {
                 services: 'vkontakte,facebook,odnoklassniki,twitter,tumblr,viber,whatsapp',
             },
             content: {
-                url: "анодимси.рф/testy",
+                url: GET("redirect") ? GET("redirect") : window.location.href,
                 title: survey.title,
                 description: "",
                 services: "vkontakte,facebook,odnoklassniki,twitter,tumblr,viber,whatsapp",
@@ -473,4 +480,29 @@ String.prototype.replaceAll = function(search, replacement) {
 function GET(name){
     if(name=(new RegExp('[?&]'+encodeURIComponent(name)+'=([^&]*)')).exec(location.search))
         return decodeURIComponent(name[1]);
+}
+function Popup(data, title)
+{
+    let mywindow = window.open('', title, `height=${window.innerHeight},width=${window.innerWidth}`);
+    mywindow.document.write(`<html><head><title>${title}</title>`);
+    mywindow.document.write('</head><body >');
+    mywindow.document.write(data);
+    mywindow.document.write('</body></html>');
+    mywindow.document.close();
+    mywindow.focus();
+    mywindow.print();
+    mywindow.close();
+    return true;
+}
+function printAgreement() {
+    $(".btn").detach();
+    let html = $("body>div:first").html();
+    Popup(
+        html
+            .substr(
+                html
+                    .indexOf("<h3 class=\"text-center\">СОГЛАШЕНИЕ С СОБОЙ КАК С МОТИВАТОРОМ24</h3>")-4),
+        GET("redirect") || location.href);
+    $(".query-wrap:first").append("<div class='btn btn-success pull-right' style='margin: 0 7px' onclick='document.location.href = \"/\"'>На главную</div>");
+    $(".query-wrap:first").append("<div class=\"btn btn-success pull-right\" style='margin: 0 7px' onclick=\"printAgreement()\">Распечатать</div>");
 }
