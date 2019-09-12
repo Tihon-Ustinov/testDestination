@@ -136,7 +136,7 @@ let typeQueryProcessing = new Map([
 ]);
 
 let checkCodeProcessing = (query) => {
-    let count = $(':checkbox:checked').length;
+    let count = $('input:checked').length;
     if (count > query.count){
         swal('', `Нужно не больше ${num[query.count-1]} пунктов`, "warning");
         return false;
@@ -145,7 +145,7 @@ let checkCodeProcessing = (query) => {
         swal('', `Выберите хотя бы один пункт`, "warning");
         return false;
     }
-    $('input:checkbox:checked').each(function(){
+    $('input:checked').each(function(){
         let code = parseInt($(this).val());
         Cookies.get(`code-${code}`) ?
             Cookies.set(`code-${code}`, parseInt(Cookies.get(`code-${code}`))+1) :
@@ -387,7 +387,7 @@ function showResult() {
     $("#loader").addClass("hidden");
 }
 function beginAgain() {
-    Cookies.remove('thisQuery', null);
+    Cookies.set('thisQuery', -1);
     for (let i = 1; i <= 12; i++){
         Cookies.set('code-' + i, 0);
     }
